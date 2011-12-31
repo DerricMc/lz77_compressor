@@ -1,6 +1,11 @@
 #include "lz77Type10.h"
 
 
+
+lz77Type10::lz77Type10(int ReadAheadBuffer,int MinimumOffset,int SlidingWindow,int MinimumMatch,int BlockSize)
+	:lzBase(ReadAheadBuffer,MinimumOffset,SlidingWindow,MinimumMatch,BlockSize)
+	{}
+
 /*
 Paramaters are
 infile - Name of the input file
@@ -8,19 +13,14 @@ outfile - name of the output file
 offset - Offset to start compressing data
 length - length of bytes from offset to attempt to compress data
 
-Return 0 on success
+Return SUCCESS on success
 */
-
-lz77Type10::lz77Type10(int ReadAheadBuffer,int MinimumOffset,int SlidingWindow,int MinimumMatch,int BlockSize)
-	:lzBase(ReadAheadBuffer,MinimumOffset,SlidingWindow,MinimumMatch,BlockSize)
-	{}
-
 enumCompressionResult lz77Type10::Compress(const wxString& inStr,const wxString& outStr,unsigned long offset,unsigned long length)
 {
 	wxFFile infile,outfile;
 	infile.Open(inStr,wxT("rb"));
 	infile.Seek(offset);
-	byte* filedata=new byte[length];
+	uint8_t* filedata=new uint8_t[length];
 	size_t bytesRead;
 	//Read file from the offset into filedata
 	bytesRead=infile.Read(filedata,length);
@@ -39,21 +39,21 @@ enumCompressionResult lz77Type10::Compress(const wxString& inStr,const wxString&
 		return enumCompressionResult::FILE_NOT_OPENED;
 	}
 	
-	int encodeSize=(length<<8)|(0x10);
-	
+	uint32_t encodeSize=(length<<8)|(0x10);
+	encodeSize = wxUINT32_SWAP_ON_BE(encodeSize); //File size needs to be written as little endian always
 	outfile.Write(&encodeSize,4);
 	
-	byte *ptrStart=filedata;
-	byte *ptrEnd=(byte*)(filedata+length);
+	uint8_t *ptrStart=filedata;
+	uint8_t *ptrEnd=(uint8_t*)(filedata+length);
 	
 	//At most their will be two bytes written if the bytes can be compressed. So if all bytes in the block can be compressed it would take blockSize*2 bytes
-	byte *compressedBytes=new byte[m_iBlockSize *2];//Holds the compressed bytes yet to be written
+	uint8_t *compressedBytes=new uint8_t[m_iBlockSize *2];//Holds the compressed bytes yet to be written
 	while( ptrStart< ptrEnd )
 	{
-		byte num_of_compressed_bytes=0;
+		uint8_t num_of_compressed_bytes=0;
 		//In Binary represents 1 if byte is compressed or 0 if not compressed
 		//For example 01001000 means that the second and fifth byte in the blockSize from the left is compressed
-		byte *ptrBytes=compressedBytes;
+		uint8_t *ptrBytes=compressedBytes;
 		for(int i=0;i < m_iBlockSize;i++)
 		{
 			length_offset searchResult=Search(filedata,ptrStart,ptrEnd);
@@ -105,21 +105,22 @@ enumCompressionResult lz77Type10::Compress(const wxString& inStr,const wxString&
 enumCompressionResult lz77Type10::Decompress(const wxString& inStr,const wxString& outStr,unsigned long offset)
 {
 	wxFFile infile,outfile;
-	infile.Open(inStr,wxT("rb"));
-	
-	infile.Seek(offset);
 	
 	if(!FileIsCompressed(inStr, 0x10,offset))
 	{
-		infile.Close();
 		return enumCompressionResult::FILE_NOT_COMPRESSED;//Not compressible
 	}
+	
+	infile.Open(inStr,wxT("rb"));
+	infile.Seek(offset);
 	unsigned int filesize=0;
-	infile.Read(&filesize,3); //Size of data when it is uncompressed
+	infile.Read(&filesize,4); //Size of data when it is uncompressed
+	filesize = wxUINT32_SWAP_ON_BE(filesize); //The compressed file has the filesize encoded in little endian
+	filesize = filesize >> 8;//first byte is the encode flag
 
 	long inputsize=infile.Length()-offset-4;
-	byte* filedata=new byte[inputsize];
-	byte* buffer=filedata;
+	uint8_t* filedata=new uint8_t[inputsize];
+	uint8_t* buffer=filedata;
 	size_t bytesRead;
 	//Read file from the offset into filedata
 	while((bytesRead=infile.Read(buffer,4096))>0){
@@ -127,15 +128,15 @@ enumCompressionResult lz77Type10::Decompress(const wxString& inStr,const wxStrin
 	}
 	infile.Close();
 		
-	byte *uncompressedData=new byte[filesize];
-	byte *outputPtr=uncompressedData;
-	byte *outputEndPtr=uncompressedData+filesize;
-	byte *inputPtr=filedata;
-	byte *inputEndPtr=filedata+inputsize;
+	uint8_t *uncompressedData=new uint8_t[filesize];
+	uint8_t *outputPtr=uncompressedData;
+	uint8_t *outputEndPtr=uncompressedData+filesize;
+	uint8_t *inputPtr=filedata;
+	uint8_t *inputEndPtr=filedata+inputsize;
 	while(inputPtr<inputEndPtr && outputPtr<outputEndPtr)
 	{
 	
-		byte isCompressed=*inputPtr++;
+		uint8_t isCompressed=*inputPtr++;
 
 		for(int i=0;i < m_iBlockSize; i++)
 		{

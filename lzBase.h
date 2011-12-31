@@ -4,7 +4,7 @@
 #include "wx/string.h"
 #include "wx/ffile.h"
 #include "enum.h"
-typedef unsigned char byte;
+
 
 struct length_offset
 {	
@@ -25,7 +25,7 @@ public:
 	lzBase(int ReadAheadBuffer=18,int MinimumOffset=1,int SlidingWindow=4096,int MinimumMatch=3,int BlockSize=8);
 	virtual enumCompressionResult Compress(const wxString& inStr, const wxString& outStr,unsigned long offset,unsigned long length)=0;
 	virtual enumCompressionResult Decompress(const wxString& inStr, const wxString& outStr,unsigned long offset)=0;
-	bool FileIsCompressed(const wxString& inStr, byte encoding, unsigned long offset=0);
+	bool FileIsCompressed(const wxString& inStr, uint8_t encoding, unsigned long offset=0);
 	unsigned int decompressedFileLength(const wxString& inStr,unsigned long offset=0);
 	static compressedType FileType(const wxString& inStr,unsigned long offset=0);
 	
@@ -43,10 +43,10 @@ public:
 	
 private:
 	
-	int submatch(const byte* str1,const byte* str2,const int& len);
-	length_offset window_search(byte* beginSearchPtr, byte* searchPosPtr,byte* endLABufferPtr, byte* startLBPtr);
+	int submatch(const uint8_t* str1,const uint8_t* str2,const int& len);
+	length_offset window_search(uint8_t* beginSearchPtr, uint8_t* searchPosPtr,uint8_t* endLABufferPtr, uint8_t* startLBPtr);
 protected:
-	length_offset Search(byte* data,byte* posPtr, byte* sizePtr);
+	length_offset Search(uint8_t* data,uint8_t* posPtr, uint8_t* sizePtr);
 	unsigned int seekPosition;
 	
 	int m_iSlidingWindow;

@@ -201,7 +201,7 @@ void lz77Frame::onOk(wxCommandEvent& event)
 		switch(algorithmOptions->GetSelection()){
 		 case  enumCompressionType::BEST_LZ77_TYPE_10:
 		 	{
-		 		lz77Type10 lz77(18,3);
+		 		lz77Type10 lz77(18,1);
 		 		result=lz77.Compress(Inputfile->GetValue(),Outputfile->GetValue(),in_offset,bytesToCompress);
 		 	}
 		 	break;

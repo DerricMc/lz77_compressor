@@ -13,7 +13,7 @@ compressedType lzBase::FileType(const wxString& inStr,unsigned long offset){
 	wxFFile infile;
 	infile.Open(inStr,wxT("rb"));
 	infile.Seek(offset);
-	byte encodeFlag;
+	uint8_t encodeFlag;
 	infile.Read(&encodeFlag,1);
 	infile.Close();
 	compressedType filetype;
@@ -37,11 +37,11 @@ compressedType lzBase::FileType(const wxString& inStr,unsigned long offset){
 	return filetype;
 }
 
-bool lzBase::FileIsCompressed(const wxString& inStr, byte encoding, unsigned long offset){
+bool lzBase::FileIsCompressed(const wxString& inStr, uint8_t encoding, unsigned long offset){
 	wxFFile infile;
 	infile.Open(inStr,wxT("rb"));
 	infile.Seek(offset);
-	byte encodeFlag;
+	uint8_t encodeFlag;
 	infile.Read(&encodeFlag,1);
 	infile.Close();
 	return (encodeFlag == encoding);
@@ -65,10 +65,11 @@ unsigned int lzBase::decompressedFileLength(const wxString& inStr, unsigned long
   Normally a search for one byte is matched, then two, then three, all the way up
   to the size of the LookAheadBuffer. So I decided to skip the incremental search
   and search for the entire LookAheadBuffer and if I don't find the bytes are equal I return
-  the next best match(which means if I look for 18 bytes and they are not found 18 characters did not match, and 17 characters did m
+  the next best match(which means if I look for 18 bytes and they are not found 18 bytess did not match,
+  and 17 bytes did match then 17 bytes match is return).
 
 */
-length_offset lzBase::Search(byte* data,byte* posPtr, byte* sizePtr)
+length_offset lzBase::Search(uint8_t* data,uint8_t* posPtr, uint8_t* sizePtr)
 {
 	length_offset results={0,0};
 
@@ -82,7 +83,7 @@ length_offset lzBase::Search(byte* data,byte* posPtr, byte* sizePtr)
 	if( (posPtr-data<m_iMIN_MATCH)||( sizePtr-posPtr <m_iMIN_MATCH) )
 		return results;
 	
-	byte* search_window;
+	uint8_t* search_window;
 	//LookAheadBuffer is ReadAheadBuffer Size if there are more bytes than ReadAheadBufferSize waiting
 	//to be compressed else the number of remaining bytes is the LookAheadBuffer
 	int lookAheadBuffer_len=((int)(sizePtr-posPtr)<m_iReadAheadBuffer) ? (int)(sizePtr-posPtr) :m_iReadAheadBuffer;
@@ -92,7 +93,7 @@ length_offset lzBase::Search(byte* data,byte* posPtr, byte* sizePtr)
 	else
 		search_window=data;
 	
-	byte* endPos=posPtr+lookAheadBuffer_len;
+	uint8_t* endPos=posPtr+lookAheadBuffer_len;
 	
 	results=window_search(search_window,posPtr,endPos,posPtr-m_uiMinOffset);
 	return results;
@@ -101,7 +102,7 @@ length_offset lzBase::Search(byte* data,byte* posPtr, byte* sizePtr)
 
 //Returns the full length of string2 if they are equal else
 //Return the number of characters that were equal before they weren't equal
-int lzBase::submatch(const byte* str1,const byte* str2,const int& len){
+int lzBase::submatch(const uint8_t* str1,const uint8_t* str2,const int& len){
 	for(int i=0;i<len;++i)
 		if(str1[i]!=str2[i])
 			return i;
@@ -125,7 +126,7 @@ Normally a search for one byte is matched, then two, then three, all the way up
     			Sliding Window
     			Up to 4114 bytes
 */
-length_offset lzBase::window_search(byte* beginSearchPtr, byte* searchPosPtr,byte* endLABufferPtr, byte* startLBPtr){
+length_offset lzBase::window_search(uint8_t* beginSearchPtr, uint8_t* searchPosPtr,uint8_t* endLABufferPtr, uint8_t* startLBPtr){
 	int size=endLABufferPtr-beginSearchPtr;//Size of the entire sliding window
 	int n=endLABufferPtr-searchPosPtr;
 	length_offset result={0,0};
