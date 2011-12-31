@@ -46,8 +46,7 @@ This program was made to be multiplatform and therefore requires use of the WxWi
 to compile the source code. A makefile is included for compiling
 
 Copying: 
-You may use and modify the sources of this program for whatever purpose as long as it does not involde
- malicious intent. I assume no responsibility for the results of any harm caused by the modification of these sources
+You may use and modify the sources of this program for whatever purpose as long as it does not involve malicious intent. I assume no responsibility for the results of any harm caused by the modification of these sources
 
 Credits:
 Nintenlord -  His source for his LZ77 compressor is mostly what makes up my compress and Uncompress functions

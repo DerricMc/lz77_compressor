@@ -166,10 +166,7 @@ enumCompressionResult lz77Type11::Decompress(const wxString& inStr,const wxStrin
 	
 	infile.Seek(offset);
 	
-	byte encodeFlag;
-	infile.Read(&encodeFlag,1); //Size of data when it is uncompressed
-	
-	if(encodeFlag !=0x11)
+	if(!FileIsCompressed(inStr, 0x11,offset))
 	{
 		infile.Close();
 		return enumCompressionResult::FILE_NOT_COMPRESSED;//Not compressible

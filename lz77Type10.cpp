@@ -108,11 +108,8 @@ enumCompressionResult lz77Type10::Decompress(const wxString& inStr,const wxStrin
 	infile.Open(inStr,wxT("rb"));
 	
 	infile.Seek(offset);
-	bool encodeFlag;
 	
-	infile.Read(&encodeFlag,1);
-		
-	if(encodeFlag != 0x10)
+	if(!FileIsCompressed(inStr, 0x10,offset))
 	{
 		infile.Close();
 		return enumCompressionResult::FILE_NOT_COMPRESSED;//Not compressible

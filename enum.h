@@ -15,7 +15,7 @@ enum class enumCompressionMode:int
 			compressSelect=0,
 			decompressSelect=1
 };
-enum class enumCompressionType:int
+enum enumCompressionType:int
 {
 			BEST_LZ77_TYPE_10=0,
 			EXACT_WII_LZ77_TYPE_10,
