@@ -63,6 +63,7 @@ enumCompressionResult lz77Type10::Compress(const wxString& inStr,const wxString&
 		{
 			//length_offset searchResult=Search(ptrStart, filedata, ptrEnd);
 			length_offset searchResult=lz77Table->search(ptrStart, filedata, ptrEnd);
+
 			//If the number of bytes to be compressed is at least the size of the Minimum match 
 			if(searchResult.length >= m_iMIN_MATCH)
 			{	//Gotta swap the bytes since system is wii is big endian and most computers are little endian

@@ -21,6 +21,7 @@ private:
 	int32_t m_iMinimumMatch;
 	int32_t m_iSlidingWindow;
 	int32_t m_iLookAheadWindow;
+	std::vector<uint8_t> buffer;
 	
 	
 };

@@ -5,8 +5,19 @@ SET(lz77Compressor_VERSION_MINOR 1)
 SET(CMAKE_CXX_COMPILER /usr/local/bin/g++)
 SET(CMAKE_CXX_FLAGS_DEBUG "-g -pg")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O2")
-SET(CMAKE_CXX_FLAGS_RELEASE_WITH_PROFILE "-O2 -pg")
+SET(CMAKE_CXX_FLAGS_RELEASEWITHPROFILE "-O2 -pg" CACHE STRING
+	"Flags used by c++ compiler during ReleaseWithProfile builds.")
 
+
+SET( CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
+    "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ReleaseWithProfile."
+    FORCE )
+    
+if(CMAKE_CONFIGURATION_TYPES)
+   list(APPEND CMAKE_CONFIGURATION_TYPES ReleaseWithProfile)
+ endif()
+ 
+MARK_AS_ADVANCED(CMAKE_CXX_FLAGS_RELEASEWITHPROFILE)
 
 execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
                 OUTPUT_VARIABLE GCC_VERSION)
