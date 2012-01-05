@@ -1,4 +1,3 @@
-//#include "Trie.h"
 #include "lookupTable.h"
 #include "lzBase.h"
 
@@ -9,16 +8,14 @@ lzBase::lzBase(int MinimumOffset, int SlidingWindow, int MinimumMatch, int Block
 	m_iMIN_MATCH = MinimumMatch;
 	m_iReadAheadBuffer = m_iMIN_MATCH;
 	m_iBlockSize = BlockSize;
-	//m_trie = new Trie(m_iMIN_MATCH);
 	lz77Table = new lz77LookupTable();
 }
 
 lzBase::~lzBase()
 {
-	//delete m_trie;	
 	delete lz77Table;
 }
-compressedType lzBase::FileType(const wxString& inStr,unsigned long offset){
+compressedType lzBase::FileType(const wxString& inStr,uint64_t offset){
 	wxFFile infile;
 	infile.Open(inStr,wxT("rb"));
 	infile.Seek(offset);
@@ -46,7 +43,7 @@ compressedType lzBase::FileType(const wxString& inStr,unsigned long offset){
 	return filetype;
 }
 
-bool lzBase::FileIsCompressed(const wxString& inStr, uint8_t encoding, unsigned long offset){
+bool lzBase::FileIsCompressed(const wxString& inStr, uint8_t encoding, uint64_t offset){
 	wxFFile infile;
 	infile.Open(inStr,wxT("rb"));
 	infile.Seek(offset);
@@ -56,11 +53,11 @@ bool lzBase::FileIsCompressed(const wxString& inStr, uint8_t encoding, unsigned 
 	return (encodeFlag == encoding);
 }
 
-unsigned int lzBase::decompressedFileLength(const wxString& inStr, unsigned long offset){
+uint32_t lzBase::decompressedFileLength(const wxString& inStr, uint64_t offset){
 	wxFFile infile;
 	infile.Open(inStr,wxT("rb"));
 	infile.Seek(offset+1);
-	unsigned int filesize=0;
+	uint32_t filesize=0;
 	infile.Read(&filesize,3);
 	if(filesize==0){
 		infile.Read(&filesize,4);
@@ -77,12 +74,12 @@ unsigned int lzBase::decompressedFileLength(const wxString& inStr, unsigned long
   and 17 bytes did match then 17 bytes match is return).
 
 */
-length_offset lzBase::Search(uint8_t* data,uint8_t* posPtr, uint8_t* sizePtr)
+length_offset lzBase::Search(uint8_t* posPtr, uint8_t* data_begin, uint8_t* data_end)
 {
 	length_offset results={0,0};
 
 	//Returns negative 1 for Search failures since the current position is passed the size to be compressed
-	if(posPtr >=sizePtr)
+	if(posPtr >=data_end)
 	{
 		results.length=-1;
 		return results;
@@ -91,25 +88,17 @@ length_offset lzBase::Search(uint8_t* data,uint8_t* posPtr, uint8_t* sizePtr)
 	uint8_t* search_window;
 	//LookAheadBuffer is ReadAheadBuffer Size if there are more bytes than ReadAheadBufferSize waiting
 	//to be compressed else the number of remaining bytes is the LookAheadBuffer
-	int lookAheadBuffer_len=((int)(sizePtr-posPtr)<m_iReadAheadBuffer) ? (int)(sizePtr-posPtr) :m_iReadAheadBuffer;
-	int sliding_buffer=(int)(posPtr - data)-m_iSlidingWindow;
+	int lookAheadBuffer_len=((int)(data_end-posPtr)<m_iReadAheadBuffer) ? (int)(data_end-posPtr) :m_iReadAheadBuffer;
+	int sliding_buffer=(int)(posPtr - data_begin)-m_iSlidingWindow;
 	if(sliding_buffer > 0)
-		search_window=data+sliding_buffer;	
+		search_window=data_begin+sliding_buffer;	
 	else
-		search_window=data;
+		search_window=data_begin;
 	
 	uint8_t* endPos=posPtr+lookAheadBuffer_len;
-	//results2 = m_trie->slide_and_search(data, posPtr, endPos, sizePtr);
-	results = lz77Table->search(data, sizePtr, posPtr);
 	
-	/*
-	if(!( (posPtr-data < 1)||( sizePtr-posPtr < m_iMIN_MATCH) ))
+	if(!( (posPtr-data_begin < 1)||( data_end-posPtr < m_iMIN_MATCH) ))
 		results=window_search(search_window,posPtr,endPos,posPtr-m_uiMinOffset);
-	if(results.length < m_iMIN_MATCH)
-		assert(results2.compare_equal({0,0}));
-	else
-		assert(results2.compare_equal(results));
-		*/
 	return results;
 }
 

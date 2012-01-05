@@ -1,3 +1,4 @@
+#include "lookupTable.h"
 #include "lz77Type11.h"
 
 
@@ -11,14 +12,15 @@ length - length of bytes from offset to attempt to compress data
 Return 0 on success
 */
 
-lz77Type11::lz77Type11(int MinimumOffset, int SlidingWindow, int MinimumMatch, int BlockSize)
+lz77Type11::lz77Type11(int32_t MinimumOffset, int32_t SlidingWindow, int32_t MinimumMatch, int32_t BlockSize)
 	:lzBase(MinimumOffset,SlidingWindow,MinimumMatch,BlockSize)
 	{
 		 m_iReadAheadBuffer=(0xF + 0xFF + 0xFFFF + m_iMIN_MATCH);
+		 lz77Table->setLookAheadWindow(m_iReadAheadBuffer);
 	}
 
 
-enumCompressionResult lz77Type11::Compress(const wxString& inStr,const wxString& outStr,unsigned long offset,unsigned long length)
+enumCompressionResult lz77Type11::Compress(const wxString& inStr,const wxString& outStr,uint64_t offset,uint64_t length)
 {
 	wxFFile infile,outfile;
 	infile.Open(inStr,wxT("rb"));
@@ -63,9 +65,9 @@ enumCompressionResult lz77Type11::Compress(const wxString& inStr,const wxString&
 	
 	uint8_t maxTwoByteMatch= 0xF+1; 
 	uint8_t minThreeByteMatch=maxTwoByteMatch+1;//Minimum Three byte match is maximum TwoByte match + 1
-	unsigned short maxThreeByteMatch= 0xFF+minThreeByteMatch;
-	unsigned short minFourByteMatch=maxThreeByteMatch+1;//Minimum Four byte match is maximum Three Byte match + 1
-	int maxFourByteMatch=0xFFFF+minFourByteMatch;
+	uint16_t maxThreeByteMatch= 0xFF+minThreeByteMatch;
+	uint16_t minFourByteMatch=maxThreeByteMatch+1;//Minimum Four byte match is maximum Three Byte match + 1
+	int32_t maxFourByteMatch=0xFFFF+minFourByteMatch;
 	/*
 	Normaliazation Example: If MIN_MATCH is 3 then 3 gets mapped to 2 and 16 gets mapped to 15. 
 	17 gets mapped to 1 and 272 gets mapped to 255
@@ -86,15 +88,16 @@ enumCompressionResult lz77Type11::Compress(const wxString& inStr,const wxString&
 		//In Binary represents 1 if byte is compressed or 0 if not compressed
 		//For example 01001000 means that the second and fifth byte in the blockSize from the left is compressed
 		uint8_t *ptrBytes=compressedBytes;
-		for(int i=0;i < m_iBlockSize;i++)
+		for(int32_t i=0;i < m_iBlockSize;i++)
 		{
-			length_offset searchResult=Search(filedata,ptrStart,ptrEnd);
+			//length_offset searchResult=Search(filedata,ptrStart,ptrEnd);
+			length_offset searchResult=lz77Table->search(ptrStart, filedata, ptrEnd);
 			//If the number of bytes to be compressed is at least the size of the Minimum match 
 			if(searchResult.length >= m_iMIN_MATCH)
 			{	//Gotta swap the bytes since system is wii is big endian and most computers are little endian
 				
 				if(searchResult.length <= maxTwoByteMatch){
-					unsigned short len_off=wxINT16_SWAP_ON_LE
+					uint16_t len_off=wxINT16_SWAP_ON_LE
 					( 
 						(((searchResult.length - 1) & 0xF) << 12) | //Bits 15-12
 						((searchResult.offset - 1) & 0xFFF) 		       //Bits 11-0
@@ -103,7 +106,7 @@ enumCompressionResult lz77Type11::Compress(const wxString& inStr,const wxString&
 					ptrBytes+=2;
 				}
 				else if(searchResult.length <= maxThreeByteMatch){ 
-					unsigned int len_off=wxINT32_SWAP_ON_LE
+					uint32_t len_off=wxINT32_SWAP_ON_LE
 					(  
 						
 						(((searchResult.length - minThreeByteMatch) & 0xFF)<< 12) | //Bits 20-12
@@ -113,7 +116,7 @@ enumCompressionResult lz77Type11::Compress(const wxString& inStr,const wxString&
 					ptrBytes+=3;
 				}
 				else if(searchResult.length <= maxFourByteMatch){ 
-					unsigned int len_off=wxINT32_SWAP_ON_LE
+					uint32_t len_off=wxINT32_SWAP_ON_LE
 					(  
 						(1<<28) | 						     //Bits 31-28 Flag to say that this is four bytes
 						(((searchResult.length - minFourByteMatch) & 0xFFFF)<< 12) | //Bits 28-12
@@ -145,7 +148,7 @@ enumCompressionResult lz77Type11::Compress(const wxString& inStr,const wxString&
 	delete []filedata;
 	compressedBytes=NULL;
 	filedata=NULL;
-	int div4;
+	int32_t div4;
 	//Add zeros until the file is a multiple of 4
 	if((div4=outfile.Tell()%4) !=0 )
 		outfile.Write("\0",4-div4);
@@ -160,7 +163,7 @@ enumCompressionResult lz77Type11::Compress(const wxString& inStr,const wxString&
 	outStr-Output file to decompress
 	offset-position in infile to start de-compression
 */
-enumCompressionResult lz77Type11::Decompress(const wxString& inStr,const wxString& outStr,unsigned long offset)
+enumCompressionResult lz77Type11::Decompress(const wxString& inStr,const wxString& outStr,uint64_t offset)
 {
 	wxFFile infile,outfile;
 
@@ -171,7 +174,7 @@ enumCompressionResult lz77Type11::Decompress(const wxString& inStr,const wxStrin
 	
 	infile.Open(inStr,wxT("rb"));
 	infile.Seek(offset);
-	unsigned int filesize=0;
+	uint32_t filesize=0;
 	infile.Read(&filesize,4);
 	filesize = wxUINT32_SWAP_ON_BE(filesize);//The compressed file has the filesize encoded in little endian
 	filesize = filesize >> 8;//First byte is the encode flag
@@ -181,7 +184,7 @@ enumCompressionResult lz77Type11::Decompress(const wxString& inStr,const wxStrin
 		filesize = wxUINT32_SWAP_ON_BE(filesize);
 	}
 	
-	long inputsize=infile.Length()-offset-4;
+	int64_t inputsize=infile.Length()-offset-4;
 	uint8_t* filedata=new uint8_t[inputsize];
 	uint8_t* buffer=filedata;
 	size_t bytesRead;
@@ -200,15 +203,15 @@ enumCompressionResult lz77Type11::Decompress(const wxString& inStr,const wxStrin
 	length_offset decoding;
 	uint8_t maxTwoByteMatch= 0xF+1; 
 	uint8_t threeByteDenorm=maxTwoByteMatch+1;//Amount to add to length when compression is 3 bytes
-	unsigned short maxThreeByteMatch=0xFF+threeByteDenorm;
-	unsigned short fourByteDenorm=maxThreeByteMatch+1;
+	uint16_t maxThreeByteMatch=0xFF+threeByteDenorm;
+	uint16_t fourByteDenorm=maxThreeByteMatch+1;
 	
 	while(inputPtr<inputEndPtr && outputPtr<outputEndPtr)
 	{
 	
 		uint8_t isCompressed=*inputPtr++;
 
-		for(int i=0;i < m_iBlockSize; i++)
+		for(int32_t i=0;i < m_iBlockSize; i++)
 		{
 			//Checks to see if the next byte is compressed by looking 
 			//at its binary representation - E.g 10010000
@@ -217,7 +220,7 @@ enumCompressionResult lz77Type11::Decompress(const wxString& inStr,const wxStrin
 			 {
 				 uint8_t metaDataSize=*inputPtr >> 4;//Look at the top 4 bits
 				 if(metaDataSize >= 2){ //Two Bytes of Length/Offset MetaData
-				 	unsigned short len_off=0;
+				 	uint16_t len_off=0;
 				 	memcpy(&len_off,inputPtr,2);
 				 	inputPtr+=2;
 				  	len_off=wxINT16_SWAP_ON_LE(len_off);
@@ -225,7 +228,7 @@ enumCompressionResult lz77Type11::Decompress(const wxString& inStr,const wxStrin
 					decoding.offset=(len_off & 0xFFF) + 1;
 				 }
 				 else if (metaDataSize==0){ //Three Bytes of Length/Offset MetaData
-				 	unsigned int len_off=0;
+				 	uint32_t len_off=0;
 				 	memcpy((uint8_t*)&len_off+1,inputPtr,3);
 				 	inputPtr+=3;
 				  	len_off=wxINT32_SWAP_ON_LE(len_off);
@@ -233,7 +236,7 @@ enumCompressionResult lz77Type11::Decompress(const wxString& inStr,const wxStrin
 					decoding.offset=(len_off & 0xFFF) + 1;
 				 }
 				 else if(metaDataSize==1){ //Four Bytes of Length/Offset MetaData
-				 	unsigned int len_off=0;
+				 	uint32_t len_off=0;
 				 	memcpy(&len_off,inputPtr,4);
 				 	inputPtr+=4;
 				  	len_off=wxINT32_SWAP_ON_LE(len_off);
@@ -256,7 +259,7 @@ enumCompressionResult lz77Type11::Decompress(const wxString& inStr,const wxStrin
 				 	filedata=NULL;
 				 	return enumCompressionResult::INVALID_COMPRESSED_DATA;
 				 }
-				for(int j=0;j<decoding.length;++j)
+				for(int32_t j=0;j<decoding.length;++j)
 					outputPtr[j]=(outputPtr-decoding.offset)[j];
 				outputPtr+=decoding.length;
 			 }

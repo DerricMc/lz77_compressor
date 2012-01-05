@@ -1,8 +1,9 @@
+#include "lookupTable.h"
 #include "lz77Type10.h"
 
 
 
-lz77Type10::lz77Type10(int MinimumOffset, int SlidingWindow, int MinimumMatch, int BlockSize)
+lz77Type10::lz77Type10(int32_t MinimumOffset, int32_t SlidingWindow, int32_t MinimumMatch, int32_t BlockSize)
 	:lzBase(MinimumOffset,SlidingWindow,MinimumMatch,BlockSize)
 	{
 			//ReadAheadBuffer is normalize between (minumum match) and(minimum match + 15) so that matches fit within
@@ -19,7 +20,7 @@ length - length of bytes from offset to attempt to compress data
 
 Return SUCCESS on success
 */
-enumCompressionResult lz77Type10::Compress(const wxString& inStr,const wxString& outStr,unsigned long offset,unsigned long length)
+enumCompressionResult lz77Type10::Compress(const wxString& inStr,const wxString& outStr,uint64_t offset,uint64_t length)
 {
 	wxFFile infile,outfile;
 	infile.Open(inStr,wxT("rb"));
@@ -58,13 +59,14 @@ enumCompressionResult lz77Type10::Compress(const wxString& inStr,const wxString&
 		//In Binary represents 1 if byte is compressed or 0 if not compressed
 		//For example 01001000 means that the second and fifth byte in the blockSize from the left is compressed
 		uint8_t *ptrBytes=compressedBytes;
-		for(int i=0;i < m_iBlockSize;i++)
+		for(int32_t i=0;i < m_iBlockSize;i++)
 		{
-			length_offset searchResult=Search(filedata,ptrStart,ptrEnd);
+			//length_offset searchResult=Search(ptrStart, filedata, ptrEnd);
+			length_offset searchResult=lz77Table->search(ptrStart, filedata, ptrEnd);
 			//If the number of bytes to be compressed is at least the size of the Minimum match 
 			if(searchResult.length >= m_iMIN_MATCH)
 			{	//Gotta swap the bytes since system is wii is big endian and most computers are little endian
-				unsigned short len_off=wxINT16_SWAP_ON_LE( (((searchResult.length - m_iMIN_MATCH) & 0xF) << 12) | ((searchResult.offset - 1) & 0xFFF) );
+				uint16_t len_off=wxINT16_SWAP_ON_LE( (((searchResult.length - m_iMIN_MATCH) & 0xF) << 12) | ((searchResult.offset - 1) & 0xFFF) );
 				memcpy(ptrBytes,&len_off,sizeof(short));
 				ptrBytes+=sizeof(short);
 								
@@ -91,7 +93,7 @@ enumCompressionResult lz77Type10::Compress(const wxString& inStr,const wxString&
 	delete []filedata;
 	compressedBytes=NULL;
 	filedata=NULL;
-	int div4;
+	int32_t div4;
 	//Add zeros until the file is a multiple of 4
 	if((div4=outfile.Tell()%4) !=0 )
 		outfile.Write("\0",4-div4);
@@ -106,7 +108,7 @@ enumCompressionResult lz77Type10::Compress(const wxString& inStr,const wxString&
 	outStr-Output file to decompress
 	offset-position in infile to start de-compression
 */
-enumCompressionResult lz77Type10::Decompress(const wxString& inStr,const wxString& outStr,unsigned long offset)
+enumCompressionResult lz77Type10::Decompress(const wxString& inStr,const wxString& outStr,uint64_t offset)
 {
 	wxFFile infile,outfile;
 	
@@ -117,12 +119,12 @@ enumCompressionResult lz77Type10::Decompress(const wxString& inStr,const wxStrin
 	
 	infile.Open(inStr,wxT("rb"));
 	infile.Seek(offset);
-	unsigned int filesize=0;
+	uint32_t filesize=0;
 	infile.Read(&filesize,4); //Size of data when it is uncompressed
 	filesize = wxUINT32_SWAP_ON_BE(filesize); //The compressed file has the filesize encoded in little endian
 	filesize = filesize >> 8;//first byte is the encode flag
 
-	long inputsize=infile.Length()-offset-4;
+	int64_t inputsize=infile.Length()-offset-4;
 	uint8_t* filedata=new uint8_t[inputsize];
 	uint8_t* buffer=filedata;
 	size_t bytesRead;
@@ -142,7 +144,7 @@ enumCompressionResult lz77Type10::Decompress(const wxString& inStr,const wxStrin
 	
 		uint8_t isCompressed=*inputPtr++;
 
-		for(int i=0;i < m_iBlockSize; i++)
+		for(int32_t i=0;i < m_iBlockSize; i++)
 		{
 			//Checks to see if the next byte is compressed by looking 
 			//at its binary representation - E.g 10010000
@@ -166,7 +168,7 @@ enumCompressionResult lz77Type10::Decompress(const wxString& inStr,const wxStrin
 				 	filedata=NULL;
 				 	return enumCompressionResult::INVALID_COMPRESSED_DATA;
 				 }
-				for(int j=0;j<decoding.length;++j)
+				for(int32_t j=0;j<decoding.length;++j)
 					outputPtr[j]=(outputPtr-decoding.offset)[j];
 				outputPtr+=decoding.length;
 			 }

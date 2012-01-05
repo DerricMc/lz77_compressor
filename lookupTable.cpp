@@ -27,9 +27,23 @@ lz77LookupTable::lz77LookupTable(int32_t iMinimumMatch, int32_t iSlidingWindow, 
 lz77LookupTable::~lz77LookupTable()
 {}
 
-length_offset lz77LookupTable::search(uint8_t* data_begin, uint8_t* data_end, uint8_t* cur_pos)
+void lz77LookupTable::setLookAheadWindow(int32_t iLookAheadWindow)
+{
+	if(iLookAheadWindow > 0)
+		m_iLookAheadWindow = iLookAheadWindow;
+	else
+		m_iLookAheadWindow = 18;
+}
+
+length_offset lz77LookupTable::search(uint8_t* cur_pos, uint8_t* data_begin, uint8_t* data_end)
 {
 	length_offset lo_pair = {0,0};
+	//Returns negative 1 for search failures since the current position is passed the size to be compressed
+	if(cur_pos >=data_end)
+	{
+		lo_pair.length=-1;
+		return lo_pair;
+	}
 	std::vector<uint8_t> vec(cur_pos, cur_pos + m_iMinimumMatch);
 	int32_t currentOffset = static_cast<int32_t>(cur_pos - data_begin);
 	//Find code
