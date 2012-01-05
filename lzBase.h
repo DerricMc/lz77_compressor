@@ -4,14 +4,10 @@
 #include "wx/string.h"
 #include "wx/ffile.h"
 #include "enum.h"
+#include "struct.h"
+//class Trie;
+class lz77LookupTable;
 
-
-struct length_offset
-{	
-	int length;//The number of bytes compressed
-	unsigned short offset;//How far back in sliding window where bytes that match the lookAheadBuffer is located
-
-};
 enum class compressedType:int{
 		None=-1,
 		LZ00,
@@ -22,7 +18,8 @@ enum class compressedType:int{
 
 class lzBase {
 public:
-	lzBase(int ReadAheadBuffer=18,int MinimumOffset=1,int SlidingWindow=4096,int MinimumMatch=3,int BlockSize=8);
+	lzBase(int MinimumOffset=1,int SlidingWindow=4096,int MinimumMatch=3,int BlockSize=8);
+	~lzBase();
 	virtual enumCompressionResult Compress(const wxString& inStr, const wxString& outStr,unsigned long offset,unsigned long length)=0;
 	virtual enumCompressionResult Decompress(const wxString& inStr, const wxString& outStr,unsigned long offset)=0;
 	bool FileIsCompressed(const wxString& inStr, uint8_t encoding, unsigned long offset=0);
@@ -43,18 +40,18 @@ public:
 	
 private:
 	
-	int submatch(const uint8_t* str1,const uint8_t* str2,const int& len);
+	int submatch(const uint8_t* str1,const uint8_t* str2,const int len);
 	length_offset window_search(uint8_t* beginSearchPtr, uint8_t* searchPosPtr,uint8_t* endLABufferPtr, uint8_t* startLBPtr);
 protected:
 	length_offset Search(uint8_t* data,uint8_t* posPtr, uint8_t* sizePtr);
-	unsigned int seekPosition;
 	
 	int m_iSlidingWindow;
 	int m_iReadAheadBuffer;
 	int m_iMIN_MATCH;//Minimum number of bytes that have to matched to go through with compression
 	int m_iBlockSize;
 	unsigned int m_uiMinOffset;
-
+	//Trie* m_trie;
+	lz77LookupTable* lz77Table;
 
 };
 

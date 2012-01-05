@@ -35,7 +35,6 @@ class lz77Frame : public wxFrame
 	
 	public:	
 		lz77Frame(wxWindow *parent, wxWindowID id = -1, const wxString &title = wxT("lz77 compressor"),const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = lz77_FRAME_STYLE);
-		
 		void onOk(wxCommandEvent& event);
 		void onClose(wxCommandEvent& event);
 		void onFileInput(wxCommandEvent& event);

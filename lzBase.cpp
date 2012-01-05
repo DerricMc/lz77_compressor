@@ -1,13 +1,22 @@
+//#include "Trie.h"
+#include "lookupTable.h"
 #include "lzBase.h"
 
 
-lzBase::lzBase(int ReadAheadBuffer,int MinimumOffset,int SlidingWindow,int MinimumMatch,int BlockSize){
-	m_uiMinOffset=MinimumOffset;
-	m_iSlidingWindow=SlidingWindow;
-	m_iReadAheadBuffer=ReadAheadBuffer;
-	m_iMIN_MATCH=MinimumMatch;
-	m_iBlockSize=BlockSize;
-	seekPosition=0;
+lzBase::lzBase(int MinimumOffset, int SlidingWindow, int MinimumMatch, int BlockSize){
+	m_uiMinOffset = MinimumOffset;
+	m_iSlidingWindow = SlidingWindow;
+	m_iMIN_MATCH = MinimumMatch;
+	m_iReadAheadBuffer = m_iMIN_MATCH;
+	m_iBlockSize = BlockSize;
+	//m_trie = new Trie(m_iMIN_MATCH);
+	lz77Table = new lz77LookupTable();
+}
+
+lzBase::~lzBase()
+{
+	//delete m_trie;	
+	delete lz77Table;
 }
 compressedType lzBase::FileType(const wxString& inStr,unsigned long offset){
 	wxFFile infile;
@@ -56,7 +65,6 @@ unsigned int lzBase::decompressedFileLength(const wxString& inStr, unsigned long
 	if(filesize==0){
 		infile.Read(&filesize,4);
 	}
-	seekPosition=infile.Tell();
 	infile.Close();
 	return filesize;
 }
@@ -79,30 +87,36 @@ length_offset lzBase::Search(uint8_t* data,uint8_t* posPtr, uint8_t* sizePtr)
 		results.length=-1;
 		return results;
 	}
-	//Returns if in the first three or last three bytes of the file
-	if( (posPtr-data<m_iMIN_MATCH)||( sizePtr-posPtr <m_iMIN_MATCH) )
-		return results;
-	
+
 	uint8_t* search_window;
 	//LookAheadBuffer is ReadAheadBuffer Size if there are more bytes than ReadAheadBufferSize waiting
 	//to be compressed else the number of remaining bytes is the LookAheadBuffer
 	int lookAheadBuffer_len=((int)(sizePtr-posPtr)<m_iReadAheadBuffer) ? (int)(sizePtr-posPtr) :m_iReadAheadBuffer;
 	int sliding_buffer=(int)(posPtr - data)-m_iSlidingWindow;
-	if(sliding_buffer>0)
+	if(sliding_buffer > 0)
 		search_window=data+sliding_buffer;	
 	else
 		search_window=data;
 	
 	uint8_t* endPos=posPtr+lookAheadBuffer_len;
+	//results2 = m_trie->slide_and_search(data, posPtr, endPos, sizePtr);
+	results = lz77Table->search(data, sizePtr, posPtr);
 	
-	results=window_search(search_window,posPtr,endPos,posPtr-m_uiMinOffset);
+	/*
+	if(!( (posPtr-data < 1)||( sizePtr-posPtr < m_iMIN_MATCH) ))
+		results=window_search(search_window,posPtr,endPos,posPtr-m_uiMinOffset);
+	if(results.length < m_iMIN_MATCH)
+		assert(results2.compare_equal({0,0}));
+	else
+		assert(results2.compare_equal(results));
+		*/
 	return results;
 }
 
 
 //Returns the full length of string2 if they are equal else
 //Return the number of characters that were equal before they weren't equal
-int lzBase::submatch(const uint8_t* str1,const uint8_t* str2,const int& len){
+int lzBase::submatch(const uint8_t* str1,const uint8_t* str2,const int len){
 	for(int i=0;i<len;++i)
 		if(str1[i]!=str2[i])
 			return i;

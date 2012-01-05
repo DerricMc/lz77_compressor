@@ -11,9 +11,11 @@ length - length of bytes from offset to attempt to compress data
 Return 0 on success
 */
 
-lz77Type11::lz77Type11(int ReadAheadBuffer,int MinimumOffset,int SlidingWindow,int MinimumMatch,int BlockSize)
-	:lzBase(ReadAheadBuffer,MinimumOffset,SlidingWindow,MinimumMatch,BlockSize)
-	{}
+lz77Type11::lz77Type11(int MinimumOffset, int SlidingWindow, int MinimumMatch, int BlockSize)
+	:lzBase(MinimumOffset,SlidingWindow,MinimumMatch,BlockSize)
+	{
+		 m_iReadAheadBuffer=(0xF + 0xFF + 0xFFFF + m_iMIN_MATCH);
+	}
 
 
 enumCompressionResult lz77Type11::Compress(const wxString& inStr,const wxString& outStr,unsigned long offset,unsigned long length)

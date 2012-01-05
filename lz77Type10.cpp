@@ -2,9 +2,13 @@
 
 
 
-lz77Type10::lz77Type10(int ReadAheadBuffer,int MinimumOffset,int SlidingWindow,int MinimumMatch,int BlockSize)
-	:lzBase(ReadAheadBuffer,MinimumOffset,SlidingWindow,MinimumMatch,BlockSize)
-	{}
+lz77Type10::lz77Type10(int MinimumOffset, int SlidingWindow, int MinimumMatch, int BlockSize)
+	:lzBase(MinimumOffset,SlidingWindow,MinimumMatch,BlockSize)
+	{
+			//ReadAheadBuffer is normalize between (minumum match) and(minimum match + 15) so that matches fit within
+			//4-bits.
+			m_iReadAheadBuffer = m_iMIN_MATCH + 0xF;
+	}
 
 /*
 Paramaters are
@@ -145,14 +149,14 @@ enumCompressionResult lz77Type10::Decompress(const wxString& inStr,const wxStrin
 			//This says that the first extracted byte and the four extracted byte is compressed
 			 if ((isCompressed>>(7-i)) & 0x1) 					
 			 {
-				 unsigned short len_off;
-				 memcpy(&len_off,inputPtr,sizeof(short));
-				 inputPtr+=sizeof(short);//Move forward two bytes
+				 uint16_t len_off;
+				 memcpy(&len_off,inputPtr,sizeof(uint16_t));
+				 inputPtr+=sizeof(uint16_t);//Move forward two bytes
 				 
 				 len_off=wxINT16_SWAP_ON_LE(len_off);
 								 
 				 //length offset pair has been decoded.
-				 length_offset decoding={(len_off>>12)+m_iMIN_MATCH, static_cast<unsigned short>((len_off & 0xFFF) + 1)};
+				 length_offset decoding={(len_off>>12)+m_iMIN_MATCH, static_cast<uint16_t>((len_off & 0xFFF) + 1)};
 				 
 
 				if((outputPtr - decoding.offset) < uncompressedData){//If the offset to look for uncompressed is passed the current uncompresed data then the data is not compressed

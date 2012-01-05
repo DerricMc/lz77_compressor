@@ -42,8 +42,13 @@ How to use:
 	If no commands are given the entire file will attempt to be de-compressed
 
 Compile: 
-This program was made to be multiplatform and therefore requires use of the WxWidgets-2.8.9 library
-to compile the source code. A makefile is included for compiling
+This program was made to be multiplatform and therefore requires use of the WxWidgets-2.9.2 or later library
+to compile the source code.
+CMake 2.8 or later is the needed to generate the makefile
+To build a release version use the command
+"cmake CMakeList.txt"
+To build a debug version use the command
+"cmake -DCMAKE_BUILD_TYPE=Debug CMakeList.txt"
 
 Copying: 
 You may use and modify the sources of this program for whatever purpose as long as it does not involve malicious intent. I assume no responsibility for the results of any harm caused by the modification of these sources
